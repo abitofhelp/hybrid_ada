@@ -1,11 +1,11 @@
 # Generics vs OOP: A Practical Comparison for Dependency Injection
 
-**Version:** 1.0.0
-**Date:** October 28, 2025
+**Version:** 1.0.0  
+**Date:** October 28, 2025  
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
-**Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.
-**Status:** Released
+**Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.  
+**Status:** Released  
 
 
 This guide provides a detailed comparison of two approaches to implementing hexagonal architecture and dependency injection in Ada:

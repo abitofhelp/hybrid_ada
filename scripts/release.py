@@ -324,6 +324,18 @@ class AdaReleaseManager:
                     flags=re.IGNORECASE | re.MULTILINE
                 )
 
+            # Add trailing spaces for proper GitHub markdown rendering
+            # GitHub needs two spaces at end of line for line breaks
+            lines = content.split('\n')
+            new_lines = []
+            for line in lines:
+                # Add trailing spaces to metadata header lines
+                if re.match(r'^\*\*(Version|Date|SPDX|License|Copyright|Status):', line):
+                    if not line.endswith('  '):
+                        line = line.rstrip() + '  '
+                new_lines.append(line)
+            content = '\n'.join(new_lines)
+
             # Check if any changes were made
             if content != old_content:
                 with open(file_path, 'w') as f:
