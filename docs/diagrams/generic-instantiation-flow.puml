@@ -1,0 +1,51 @@
+@startuml Generic Instantiation Flow
+!theme plain
+
+participant "Bootstrap\n(Composition Root)" as Bootstrap
+participant "Application\n(Generic Use Case)" as App
+participant "Domain\n(Generic Service)" as Domain
+participant "Infrastructure\n(Concrete Adapter)" as Infra
+
+note over Bootstrap
+Instantiation happens
+at compile-time
+end note
+
+== Step 1: Instantiate Domain Service ==
+Bootstrap -> Domain: new Greeting_Service_Spec(\n  PersonName_Ops => Concrete_Ops\n)
+activate Domain
+Domain --> Bootstrap: Domain_Service instance
+deactivate Domain
+
+== Step 2: Instantiate Application Service ==
+Bootstrap -> App: new CreateGreeting_Spec(\n  Create_Greeting => Domain_Service.Create,\n  Write_Output => Console.Write\n)
+activate App
+App --> Bootstrap: App_Service instance
+deactivate App
+
+== Step 3: Execute Use Case ==
+Bootstrap -> App: App_Service.Execute("Alice")
+activate App
+App -> Domain: Domain_Service.Create("Alice")
+activate Domain
+Domain --> App: Result<Greeting>
+deactivate Domain
+
+App -> Infra: Console.Write(greeting)
+activate Infra
+Infra --> App: Result<Success>
+deactivate Infra
+
+App --> Bootstrap: Result<Success>
+deactivate App
+
+note right
+All function calls are
+**statically bound** at
+compile-time.
+
+No virtual dispatch!
+No runtime overhead!
+end note
+
+@enduml

@@ -1,0 +1,139 @@
+@startuml component-view
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+!define CYAN #00BCD4
+
+skinparam component {
+  BackgroundColor LIGHTBLUE
+  BorderColor BLUE
+  ArrowColor BLUE
+  shadowing false
+  defaultFontName Arial
+}
+
+title Component View - Generic Instantiation & Port Binding
+
+package "Bootstrap (Composition Root)" as Bootstrap {
+  component [Main Entry Point] as Main
+  component [Generic Instantiation\nChain] as Wiring
+  note right of Wiring
+    **8-step instantiation:**
+    1. Define App_Error type
+    2. Instantiate Result adapters
+    3. Instantiate Person_Name ops
+    4. Instantiate Console adapter
+    5. Bind to Output port
+    6. Map domain errors
+    7. Instantiate service
+    8. Instantiate CLI
+  end note
+}
+
+package "Presentation Layer" {
+  component "CLI\n<<generic>>" as CLI
+  component [Exit Code Mapper] as ExitCode
+
+  note top of CLI
+    **Generic Parameters:**
+    type App_Error is private;
+    with package R is new Result_Port;
+    with function Run_Service;
+    with function Send_Output;
+  end note
+}
+
+package "Application Layer" {
+  component "Create_Greeting\n<<generic>>" as UseCase
+
+  rectangle "Output Port\n<<generic signature>>" as OutputPort {
+    portin "Send(Msg) → Result" as SendPort
+  }
+
+  note right of OutputPort
+    **Not a concrete type!**
+    This is a generic formal:
+
+    generic
+      with function Send(Msg) return Result;
+    package Output.API is ...
+  end note
+}
+
+package "Infrastructure Layer" {
+  component "Console_Output\n<<generic adapter>>" as ConsoleAdapter
+  component "Result_API\n<<generic wrapper>>" as ResultAdapter
+  component "Functional Bridge" as FuncBridge
+
+  note right of ConsoleAdapter
+    **Itself a generic!**
+    Instantiated with Result package
+    Provides Send function
+    Bound to port signature
+  end note
+}
+
+package "Domain Layer" {
+  component "Person_Name\n<<generic>>" as PersonName
+  component "Person_Name.Operations\n<<generic>>" as PersonNameOps
+  component "Result_Port\n<<generic interface>>" as ResultPort
+
+  note bottom of ResultPort
+    **Port interface definition**
+    Lives in Domain.Foundation.Ports
+    Defines signature for Result types
+    Implemented by Infrastructure
+  end note
+}
+
+package "External: Functional Library" {
+  component "Result<T,E>" as FuncResult
+  component "Option<T>" as FuncOption
+}
+
+' Instantiation flow (compile-time binding)
+Main -down-> Wiring : triggers
+Wiring .down.> ResultAdapter : "1. instantiate"
+Wiring .down.> ConsoleAdapter : "2. instantiate"
+Wiring .down.> OutputPort : "3. bind adapter"
+Wiring .down.> UseCase : "4. instantiate"
+Wiring .down.> CLI : "5. instantiate"
+
+' Generic relationships
+CLI -down-> UseCase : "generic over\nRun_Service function"
+CLI .down.> ConsoleAdapter : "generic over\nSend_Output function"
+
+UseCase -down-> OutputPort : "generic over\nport signature"
+UseCase -down-> PersonNameOps : "generic over\nName_Ops package"
+
+ConsoleAdapter .up.> SendPort : "implements\n(via binding)"
+
+PersonNameOps -down-> PersonName : "generic over\nPerson_Name type"
+PersonNameOps -down-> ResultPort : "generic over\nResult package"
+
+ResultAdapter -down-> FuncBridge : uses
+FuncBridge -down-> FuncResult : wraps
+FuncBridge .down.> FuncOption : wraps
+
+' Type flow
+ResultPort <.. ResultAdapter : "Infrastructure implements\nDomain interface"
+
+legend right
+  **Generic Instantiation (Compile-Time):**
+  - Solid arrows = direct function calls
+  - Dotted arrows = generic instantiation
+  - All binding happens in Bootstrap
+  - No runtime polymorphism
+  - No vtable dispatch
+  - Fully inlined calls possible
+
+  **Port Pattern with Generics:**
+  - Application defines port signature (generic formal)
+  - Infrastructure provides adapter (concrete function)
+  - Bootstrap binds adapter to signature (instantiation)
+  - Result: zero-cost abstraction
+endlegend
+
+@enduml

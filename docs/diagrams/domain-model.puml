@@ -1,0 +1,102 @@
+@startuml domain-model
+!define PURPLE #9C27B0
+!define LIGHTPURPLE #E1BEE7
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Domain Model - Functional Patterns
+
+package "Hybrid.Domain.Model" <<Rectangle>> LIGHTPURPLE {
+
+  class "Either<Left, Right>" as Either {
+    + Is_Left : Boolean
+    + Is_Right : Boolean
+    --
+    + Left (Value : Left) : Either
+    + Right (Value : Right) : Either
+    + Map_Left (F : Function) : Either
+    + Map_Right (F : Function) : Either
+    + Fold (On_Left, On_Right : Function) : T
+    + Get_Left : Left
+    + Get_Right : Right
+  }
+
+  class "Result<Value_Type>" as Result {
+    + Is_Success : Boolean
+    + Is_Failure : Boolean
+    --
+    + Success (Value : Value_Type) : Result
+    + Failure (Error : Domain_Error) : Result
+    + Map (F : Function) : Result
+    + Bind (F : Function) : Result
+    + Match (On_Success, On_Failure : Function) : T
+    + Get_Value : Value_Type
+    + Get_Error : Domain_Error
+  }
+
+  note right of Either
+    **Represents one of two possible values**
+    Used for operations with two valid outcomes
+    Example: Validation that returns either
+    a validated value or validation errors
+  end note
+
+  note right of Result
+    **Represents success or failure**
+    Encapsulates Domain_Error on failure
+    Composable via Map and Bind (Monad)
+    Forces explicit error handling
+  end note
+}
+
+package "Hybrid.Domain.Value" <<Rectangle>> LIGHTPURPLE {
+  class Person_Name <<Value Object>> {
+    - value : String
+    --
+    + Create (Name : String) : Result<Person_Name>
+    + To_String : String
+    + "=" (Left, Right : Person_Name) : Boolean
+  }
+
+  note right of Person_Name
+    **Immutable Value Object**
+    Validated on construction
+    Returns Result<Person_Name>
+    Business rules enforced
+  end note
+}
+
+package "Hybrid.Domain.Service" <<Rectangle>> LIGHTPURPLE {
+  class Greeting <<Domain Service>> {
+    + Create_Greeting (Name : Person_Name) : Result<String>
+  }
+
+  note right of Greeting
+    **Pure business logic**
+    No dependencies on infrastructure
+    Returns Result to handle errors
+  end note
+}
+
+package "Hybrid.Domain.Error" <<Rectangle>> LIGHTPURPLE {
+  enum Domain_Error {
+    Invalid_Person_Name
+    Empty_Person_Name
+    Person_Name_Too_Long
+  }
+
+  note right of Domain_Error
+    **Domain-specific errors**
+    Enumeration of business rule violations
+    Used in Result<T> for failures
+  end note
+}
+
+Result ..> Domain_Error : contains on failure
+Greeting ..> Person_Name : uses
+Greeting ..> Result : returns
+Person_Name ..> Result : returns from Create
+
+@enduml

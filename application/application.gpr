@@ -1,0 +1,53 @@
+-- ==========================================================================
+-- Application Layer Project File
+-- ==========================================================================
+-- Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+-- See LICENSE file in the project root.
+-- ==========================================================================
+
+with "config/hybrid_application_config.gpr";
+with "../shared_config.gpr";
+with "../shared/shared.gpr";
+with "../domain/domain.gpr";
+
+library project Application is
+
+   for Library_Name use "Application";
+   for Library_Version use Project'Library_Name & ".so." & Hybrid_Application_Config.Crate_Version;
+
+   for Source_Dirs use ("src/**", "config/");
+   for Object_Dir use "obj/" & Hybrid_Application_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Library_Dir use "lib";
+
+   type Library_Type_Type is ("relocatable", "static", "static-pic");
+   Library_Type : Library_Type_Type :=
+     external ("APPLICATION_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+   for Library_Kind use Library_Type;
+
+   -- Whitelist public interface packages to prevent transitive Domain visibility
+   for Interfaces use (
+      "hybrid-application-error.ads",
+      "hybrid-application-port.ads",
+      "hybrid-application-port-output.ads",
+      "hybrid-application-result.ads",
+      "hybrid-application-result-result_port.ads",
+      "hybrid-application-service.ads",
+      "hybrid-application-service-create_greeting.ads",
+      "hybrid-application-service-create_greeting_concurrent.ads",
+      "hybrid-application-types.ads"
+   );
+
+   -- Use shared compiler, binder, builder, format, and documentation settings
+   package Compiler renames Shared_Config.Compiler;
+   package Binder renames Shared_Config.Binder;
+   package Builder renames Shared_Config.Builder;
+   package Format renames Shared_Config.Format;
+   package Documentation renames Shared_Config.Documentation;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Application;

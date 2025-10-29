@@ -1,0 +1,148 @@
+@startuml dependency-flow
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+!define RED #F44336
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Dependency Inversion with Generics - Data Flow vs Code Dependency Flow
+
+' Left side: Traditional Dependency (BAD)
+package "❌ WITHOUT Dependency Inversion" as Bad {
+
+  package "High-Level Module\n(Business Logic)" as HighBad RED {
+    [Service]
+  }
+
+  package "Low-Level Module\n(I/O Details)" as LowBad RED {
+    [Console]
+    [Database]
+    [HTTP Client]
+  }
+
+  HighBad -down-> LowBad : **depends on concrete**\n**implementation**
+
+  note bottom of Bad
+    ❌ **Problem:**
+    - Service depends on concrete Console
+    - Cannot test without real I/O
+    - Cannot swap implementations
+    - High-level logic coupled to details
+  end note
+}
+
+' Right side: Dependency Inversion with Generics
+package "✅ WITH Dependency Inversion (Generics)" as Good {
+
+  package "High-Level Module\n(Application Service)" as HighGood BLUE {
+    rectangle "Create_Greeting.API\n<<generic>>" as ServiceSpec BLUE {
+      note right
+        generic
+          type App_Error is private;
+          with package R is new Result_Port;
+          **with function Send(...) return Result;**
+          with package Name_Ops is new ...;
+        package API is
+          function Run (...) return R.Result;
+        end API;
+      end note
+    }
+  }
+
+  package "Abstraction\n(Port Signature)" as Port PURPLE {
+    rectangle "Output.API\n<<generic signature>>" as PortSpec PURPLE {
+      note right
+        generic
+          type App_Error is private;
+          with package R is new Result_Port;
+          **with function Send(Msg) return R.Result;**
+        package API is
+          -- Empty body! Just a signature.
+        end API;
+      end note
+    }
+  }
+
+  package "Low-Level Module\n(Infrastructure Adapter)" as LowGood ORANGE {
+    rectangle "Console_Output\n<<generic adapter>>" as ConsoleImpl ORANGE {
+      note right
+        generic
+          type App_Error is private;
+          with package R is new Result_Port;
+        package Console_Output is
+          **function Send(Msg) return R.Result;**
+        end package;
+      end note
+    }
+  }
+
+  package "Composition Root\n(Bootstrap)" as Bootstrap LIGHTBLUE {
+    rectangle "Main.adb" as MainProc LIGHTBLUE {
+      note bottom
+        **1. Instantiate adapter:**
+        package Console_Out is new Console_Output
+          (App_Error => App_Error, R => App_Result.Instance);
+
+        **2. Bind adapter to port:**
+        package Output_Port is new Output.API
+          (Send => Console_Out.Send);
+
+        **3. Inject into service:**
+        package Greeting_Service is new Create_Greeting.API
+          (Output_Port => Output_Port, ...);
+      end note
+    }
+  }
+
+  ' Dependencies (inverted!)
+  ServiceSpec -down-> PortSpec : **generic over**\n**port signature**
+  ConsoleImpl .up.> PortSpec : **implements**\n**signature**
+
+  Bootstrap -up-> ServiceSpec : instantiates
+  Bootstrap -up-> PortSpec : binds
+  Bootstrap -up-> ConsoleImpl : instantiates
+
+  note right of PortSpec
+    **Abstraction owned by high-level module**
+    Defines what Application needs
+    Infrastructure must conform
+  end note
+
+  note bottom of Good
+    ✅ **Benefits:**
+    - Service only knows about Send signature
+    - Console conforms to signature
+    - Swap adapters by changing instantiation
+    - Test with mock adapter
+    - Business logic independent of I/O
+  end note
+}
+
+' Comparison legend
+legend bottom
+  **Dependency Inversion Principle with Generics:**
+
+  **Traditional OOP approach:**
+  - Define interface type: `type Output_Port is interface;`
+  - Service depends on interface (runtime polymorphism)
+  - Adapters extend interface: `type Console is new Output_Port`
+  - Inject via access-to-class: `Service.Set_Output(Console'Access)`
+
+  **Generics approach:**
+  - Define port signature as generic formal: `with function Send(...)`
+  - Service is generic over signature (compile-time binding)
+  - Adapters provide matching function: `function Send(...)`
+  - Inject via instantiation: `package Service is new ... (Send => Console.Send)`
+
+  **Key Insight:**
+  Both achieve dependency inversion, but generics do it at **compile-time**
+  instead of **runtime**. The abstraction (port signature) is still owned
+  by the high-level module, but the binding mechanism is different.
+endlegend
+
+@enduml

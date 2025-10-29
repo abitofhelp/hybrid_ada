@@ -1,0 +1,40 @@
+name = "domain"
+description = "Domain: contains enterprise business rules and logic."
+version = "1.0.0"
+
+authors = ["A Bit of Help, Inc. - Michael Gardner"]
+maintainers = ["A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>"]
+maintainers-logins = ["abitofhelp"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = ["domain", "enterprise", "rules", "ddd", "hexagonal"]
+
+[configuration]
+auto_gpr_with = true
+
+[build-profiles]
+"*" = "development"
+
+# =============================================================================
+# BUILD SWITCHES: Ada 2022 Quality Standards
+# =============================================================================
+# These switches enforce Ada 2022 best practices for all build profiles
+# NOTE: Compiler/Binder/Builder packages are defined in ../shared_config.gpr
+
+[build-switches."*"]
+# Style checks based on Ada Quality and Style Guide
+style_checks = [
+    "-gnatyM120",  # Maximum line length of 120 characters
+    "-gnatyx",     # Check extra parentheses
+    "-gnatye",     # Check end labels
+    "-gnatyr",     # Check references
+    "-gnatyn",     # Check casing of entities in Standard
+    "-gnatyu",     # Check unnecessary blank lines
+    "-gnatyO",     # Check no overriding indicators
+]
+
+# Enable design-by-contract programming (Pre/Post/Type_Invariant/Predicate)
+contracts = "yes"
+
+# Enable comprehensive runtime checks
+runtime_checks = "everything"

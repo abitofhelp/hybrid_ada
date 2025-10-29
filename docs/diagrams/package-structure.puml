@@ -1,0 +1,208 @@
+@startuml package-structure
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+!define GREY #9E9E9E
+!define CYAN #00BCD4
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Ada Package Structure - Generics-Based Hybrid Architecture
+
+package "External Dependencies" as External CYAN {
+  package "Functional (alire)" {
+    [Functional.Result<T,E>]
+    [Functional.Option<T>]
+    [Functional.Either<L,R>]
+  }
+  note right
+    **Third-party library**
+    Not directly used in Domain
+    Wrapped by Infrastructure
+  end note
+}
+
+package "Hybrid Root" {
+
+  package "Hybrid.Shared" as Shared GREY {
+    note top
+      **Parent packages only**
+      No implementation code
+      Just namespace structure
+      e.g., Hybrid.ads, Hybrid.Domain.ads
+    end note
+  }
+
+  package "Hybrid.Domain" as Domain PURPLE {
+    package "Hybrid.Domain.Foundation" {
+      package "Hybrid.Domain.Foundation.Ports" {
+        [Result_Port <<generic>>]
+        [Option_Port <<generic>>]
+        note right
+          **Port interface definitions**
+          Define signatures for monads
+          Implemented by Infrastructure
+        end note
+      }
+    }
+    package "Hybrid.Domain.Value" {
+      [Person_Name <<type>>]
+      package "Hybrid.Domain.Value.Person_Name.Operations" {
+        [API <<generic>>]
+        note right: Generic over Result_Port
+      }
+    }
+    package "Hybrid.Domain.Service" {
+      [Greeting <<pure functions>>]
+    }
+  }
+
+  package "Hybrid.Application" as App BLUE {
+    package "Hybrid.Application.Service" {
+      [Create_Greeting.API <<generic>>]
+      [Create_Greeting_Concurrent.API <<generic>>]
+      note right
+        **Generic over:**
+        - Error types
+        - Result packages
+        - Port signatures (Send function)
+        - Domain operations
+      end note
+    }
+    package "Hybrid.Application.Port" {
+      [Output.API <<generic signature>>]
+      note right
+        **Empty body - signature only!**
+        generic
+          with function Send(...) return Result;
+        package API is
+        end API;
+      end note
+    }
+  }
+
+  package "Hybrid.Infrastructure" as Infra ORANGE {
+    package "Hybrid.Infrastructure.Adapter.Functional" {
+      [Result_API <<generic wrapper>>]
+      [Option_API <<generic wrapper>>]
+      note right
+        **Adapts Functional library**
+        Implements Domain.Foundation.Ports
+        Provides Result_Port instance
+      end note
+    }
+    package "Hybrid.Infrastructure.Adapter" {
+      [Console_Output <<generic>>]
+      note right
+        **Concrete adapter**
+        Generic over Result package
+        Provides Send function
+      end note
+    }
+    package "Hybrid.Infrastructure.Logger" {
+      [Logger]
+      [Bootstrap_Logger]
+      [Logger_Concurrent]
+    }
+  }
+
+  package "Hybrid.Presentation" as Pres GREEN {
+    package "Hybrid.Presentation.CLI" {
+      [CLI.API <<generic>>]
+      note right
+        **Generic over:**
+        - App_Error type
+        - Result package
+        - Run_Service function
+        - Send_Output function
+      end note
+    }
+    [Exit_Code <<enum>>]
+  }
+
+  package "Hybrid.Bootstrap" as Boot LIGHTBLUE {
+    [Main <<procedure>>]
+    [Main_Concurrent <<procedure>>]
+    [Signals]
+    note bottom
+      **Composition root**
+      All generic instantiations here
+      Defines App_Error type
+      Wires adapters to ports
+      Single place for dependency injection
+    end note
+  }
+}
+
+' Package dependencies (with clauses)
+Boot ..> Shared : uses
+Boot ..> Pres : with
+Boot ..> App : with
+Boot ..> Infra : with
+Boot ..> Domain : with
+
+Pres ..> Shared : uses
+Pres ..> App : with
+Pres .down.> Domain : with (types only)
+
+App ..> Shared : uses
+App ..> Domain : with
+
+Infra ..> Shared : uses
+Infra ..> App : with (for ports)
+Infra ..> Domain : with
+Infra -right-> External : with (wraps)
+
+Domain ..> Shared : uses
+Domain ..> Infra : defines ports for
+
+note right of Domain
+  **Zero "with" clauses to other layers**
+  Only withs to Domain.Foundation.Ports
+  Pure, dependency-free business logic
+  Defines port interfaces
+end note
+
+note bottom of App
+  **Defines port signatures as generics**
+  Infrastructure implements these
+  Dependency Inversion in action
+  Services generic over ports
+end note
+
+note bottom of Boot
+  **Only layer that withs all others**
+  Performs all generic instantiations:
+  1. Define App_Error
+  2. Instantiate Result_API → App_Result
+  3. Instantiate Person_Name_Ops
+  4. Instantiate Console_Output
+  5. Bind to Output.API port
+  6. Instantiate Create_Greeting service
+  7. Instantiate CLI
+  8. Wire and run
+end note
+
+legend right
+  **Key Package Types:**
+  - <<generic>> = Generic package requiring instantiation
+  - <<generic signature>> = Empty generic (just a signature)
+  - <<generic wrapper>> = Wraps external library as port
+  - <<type>> = Concrete type definition
+  - <<enum>> = Enumeration type
+  - <<pure functions>> = Stateless function package
+  - <<procedure>> = Main entry point
+
+  **Generics Flow:**
+  1. Domain defines port interfaces (Result_Port)
+  2. Infrastructure implements ports (Result_API)
+  3. Application is generic over ports
+  4. Bootstrap instantiates everything
+  5. All binding at compile-time
+endlegend
+
+@enduml

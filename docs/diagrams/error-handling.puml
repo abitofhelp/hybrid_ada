@@ -1,0 +1,70 @@
+@startuml error-handling
+!define PURPLE #9C27B0
+!define BLUE #2196F3
+!define ORANGE #FF9800
+!define RED #F44336
+!define LIGHTRED #FFEBEE
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Error Handling Strategy - Result Pattern
+
+package "Error Types" {
+  enum Domain_Error <<Domain>> PURPLE {
+    Invalid_Person_Name
+    Empty_Person_Name
+    Person_Name_Too_Long
+  }
+
+  enum Application_Error <<Application>> BLUE {
+    Domain_Error_Occurred
+    Output_Port_Failed
+    Invalid_Input
+  }
+
+  enum Infrastructure_Error <<Infrastructure>> ORANGE {
+    IO_Error
+    System_Error
+  }
+}
+
+package "Error Handling" {
+  class "Result<T>" as Result LIGHTRED {
+    + Is_Success : Boolean
+    + Is_Failure : Boolean
+    --
+    + Map (F : Function) : Result<U>
+    + Bind (F : Function) : Result<U>
+    + Match (On_Success, On_Failure) : T
+  }
+
+  class Error_Transform <<Infrastructure>> {
+    + To_Application_Error (Domain_Error) : Application_Error
+    + To_Exit_Code (Application_Error) : Exit_Code
+  }
+}
+
+note top of Result
+  **Explicit Error Handling**
+  No exceptions in business logic
+  Errors are values
+  Composable with Map/Bind
+  Forces handling at boundaries
+end note
+
+note bottom of Error_Transform
+  **Transforms errors between layers**
+  Domain → Application → Infrastructure
+  Application → Presentation (Exit Codes)
+  Preserves error information
+end note
+
+' Relationships
+Result ..> Domain_Error : may contain
+Result ..> Application_Error : may contain
+Error_Transform ..> Domain_Error : transforms
+Error_Transform ..> Application_Error : transforms
+
+@enduml

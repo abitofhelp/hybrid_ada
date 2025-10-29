@@ -1,0 +1,83 @@
+@startuml use-case-flow
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+
+skinparam sequence {
+  ParticipantBackgroundColor LIGHTBLUE
+  ActorBackgroundColor GREEN
+  ArrowColor BLUE
+  LifeLineBorderColor BLUE
+  shadowing false
+  defaultFontName Arial
+}
+
+title Create Greeting Use Case - Sequence Flow
+
+actor User
+participant "CLI\n(Presentation)" as CLI GREEN
+participant "Create_Greeting\n(Application)" as App BLUE
+participant "Output_Port\n(Interface)" as Port BLUE
+participant "Console_Output\n(Infrastructure)" as Console ORANGE
+participant "Greeting Service\n(Domain)" as Domain PURPLE
+participant "Person_Name\n(Value Object)" as PersonName PURPLE
+
+User -> CLI : run with name argument
+activate CLI
+
+CLI -> PersonName : Create(name)
+activate PersonName
+PersonName -> PersonName : validate name
+alt validation fails
+  PersonName --> CLI : Failure(Invalid_Name)
+  CLI --> User : Exit(Error_Code)
+else validation succeeds
+  PersonName --> CLI : Success(Person_Name)
+
+  CLI -> App : Execute(person_name, output_port)
+  activate App
+
+  App -> Domain : Create_Greeting(person_name)
+  activate Domain
+  Domain -> Domain : apply business logic
+  Domain --> App : Result<String>
+  deactivate Domain
+
+  alt greeting creation failed
+    App --> CLI : Failure(error)
+    CLI --> User : Exit(Error_Code)
+  else greeting creation succeeded
+    App -> Port : Write_Output(greeting)
+    activate Port
+    Port -> Console : Write_Output(greeting)
+    activate Console
+    Console -> Console : print to stdout
+    deactivate Console
+    Port --> App : Success
+    deactivate Port
+
+    App --> CLI : Success
+    deactivate App
+    CLI --> User : Exit(Success_Code)
+  end
+end
+
+deactivate CLI
+
+note right of Port
+  **Dependency Inversion**
+  Application defines the port
+  Infrastructure implements it
+  Bootstrap wires them together
+end note
+
+note right of Domain
+  **Pure Business Logic**
+  No dependencies on ports
+  Returns Result<T>
+  Testable in isolation
+end note
+
+@enduml

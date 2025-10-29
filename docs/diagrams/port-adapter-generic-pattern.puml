@@ -1,0 +1,80 @@
+@startuml Port-Adapter Pattern with Generics
+!theme plain
+scale 1.2
+
+package "OOP Mental Model" as OOP {
+  interface "Output Port\n(Interface)" as IPort {
+    +Write(message): Result
+  }
+
+  class "Use Case" as UC {
+    -port: IPort
+    +Execute()
+  }
+
+  class "Adapter" as Adapter {
+    +Write(message): Result
+  }
+
+  UC o--> IPort : depends on
+  Adapter ..|> IPort : implements
+
+  note bottom of IPort
+    Runtime dependency injection:
+    useCase = new UseCase(adapter)
+  end note
+}
+
+package "Generic Translation" as Generic {
+  package "Application\n(Defines Port)" as AppLayer {
+    class "UseCase_Spec" as GenUC {
+      **generic**
+      with function Write(msg) return Result;
+      **Port defined as formal parameter**
+      --
+      procedure Execute()
+    }
+  }
+
+  package "Infrastructure\n(Implements Port)" as InfraLayer {
+    class "Console_Adapter" as GenAdapter {
+      function Write(msg) return Result
+    }
+
+    note right of GenAdapter
+      Matches the port signature
+      No explicit "implements"
+      Duck typing at compile-time
+    end note
+  }
+
+  package "Bootstrap\n(Connects Port to Adapter)" as BootLayer {
+    class "UseCase_Instance" as Instance {
+      **new UseCase_Spec(**
+        Write => Console_Adapter.Write
+      **)**
+    }
+
+    note bottom of Instance
+      Compile-time dependency injection:
+      Port signature matches adapter
+      Verified by compiler
+    end note
+  }
+
+  GenUC .left.> Instance : instantiated
+  GenAdapter ..> Instance : provides Write
+}
+
+note as Translation
+**Translation Guide:**
+Interface method → Generic formal function
+implements → Structural matching
+Constructor injection → Generic instantiation
+vtable dispatch → Direct function call
+end note
+
+OOP -[hidden]down-> Translation
+Translation -[hidden]down-> Generic
+
+@enduml

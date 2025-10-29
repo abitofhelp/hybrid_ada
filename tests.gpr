@@ -1,0 +1,45 @@
+-- Test project for Hybrid Architecture
+-- SPDX-License-Identifier: BSD-3-Clause
+-- Copyright (c) 2025 Michael Gardner
+
+with "aunit.gpr";
+with "shared/shared.gpr";
+with "domain/domain.gpr";
+with "application/application.gpr";
+with "infrastructure/infrastructure.gpr";
+with "presentation/presentation.gpr";
+with "bootstrap/bootstrap.gpr";
+with "../functional/functional.gpr";
+
+project Tests is
+
+   for Source_Dirs use
+     ("tests/src",                         -- Test harness (test_runner, test_suite)
+      "tests/unit/src/**",                 -- Unit tests by layer
+      "tests/integration/src",             -- Integration tests
+      "tests/e2e/src",                     -- End-to-end tests
+      "tests/common/mocks");               -- Shared mocks and utilities
+   for Object_Dir use "tests/obj";
+   for Exec_Dir use "tests/bin";
+   for Main use ("test_runner.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnat2022",     -- Ada 2022 mode
+         "-gnata",        -- Enable assertions and contracts
+         "-gnatVa",       -- All validity checks
+         "-gnatwa",       -- All warnings
+         "-gnaty3",       -- 3-space indentation
+         "-gnatyM120",    -- 120 char line length
+         "-g");           -- Debug info
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es");  -- Store tracebacks in exceptions
+   end Binder;
+
+   package Linker is
+      for Switches ("Ada") use ("-shared-libgcc");
+   end Linker;
+
+end Tests;

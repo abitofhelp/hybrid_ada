@@ -1,0 +1,73 @@
+-- ==========================================================================
+-- Hybrid Architecture Tests Project File (No Style Checks - For Coverage)
+-- Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+-- ==========================================================================
+--
+-- This project file is specifically for coverage analysis.
+-- It excludes style checks that can interfere with coverage instrumentation.
+-- Use this with: make test-coverage
+--
+-- The coverage analysis requires:
+--   -fprofile-arcs -ftest-coverage (added by Makefile)
+-- ==========================================================================
+
+with "aunit.gpr";
+with "domain/domain.gpr";
+with "application/application.gpr";
+with "infrastructure/infrastructure.gpr";
+with "presentation/presentation.gpr";
+with "bootstrap/bootstrap.gpr";
+
+project Tests_Coverage is
+
+   for Source_Dirs use
+     ("tests/src",                         -- Test harness (test_runner, test_suite)
+      "tests/unit/src/**",                 -- Unit tests by layer
+      "tests/integration/src",             -- Integration tests
+      "tests/e2e/src",                     -- End-to-end tests
+      "tests/common/mocks");               -- Shared mocks and utilities
+
+   for Object_Dir use "tests/obj-coverage";  -- Separate object dir for coverage
+   for Exec_Dir use "tests/bin";
+   for Main use ("test_runner.adb");
+
+   package Compiler is
+      -- Essential switches for tests
+      for Default_Switches ("Ada") use
+        (
+         -- Ada standard and basic checks
+         "-gnat2022",      -- Ada 2022 standard
+         "-gnata",         -- Enable assertions and contracts
+         "-gnatVa",        -- All validity checks
+         "-gnatwa",        -- All warnings
+         "-gnateE",        -- Extra exception information
+         "-g",             -- Debug info for coverage
+
+         -- Exclude all style checks for coverage builds
+         -- Style checks can interfere with coverage instrumentation
+         -- and are already enforced in regular test builds
+
+         -- Additional switches for better coverage analysis
+         "-O0",            -- No optimization for accurate coverage
+         "-gnatE",         -- Dynamic elaboration checking
+         "-gnateS"         -- Store tracebacks in exceptions
+        );
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es", "-g");  -- Store tracebacks, debug info
+   end Binder;
+
+   package Builder is
+      for Switches ("Ada") use
+        ("-j0",           -- Use all available cores
+         "-g",            -- Debug info
+         "-s");           -- Recompile if switches change
+   end Builder;
+
+   package Linker is
+      for Switches ("Ada") use ("-shared-libgcc");
+   end Linker;
+
+end Tests_Coverage;

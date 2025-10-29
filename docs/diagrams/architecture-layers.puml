@@ -1,0 +1,136 @@
+@startuml architecture-layers
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+!define GREY #9E9E9E
+!define CYAN #00BCD4
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Hybrid Architecture - Generics-Based Layer Dependencies
+
+package "Shared Layer\n(Parent Packages)" as Shared GREY {
+  [Hybrid.*]
+  note right
+    **Namespace parent packages**
+    No implementation code
+    Just package structure
+  end note
+}
+
+package "Bootstrap\n(Composition Root)" as Bootstrap LIGHTBLUE {
+  [Main Entry Point]
+  [Generic Instantiation Chain]
+  [Dependency Wiring]
+  [Signal Handling]
+}
+
+package "Presentation Layer\n(Input Adapters)" as Presentation GREEN {
+  [CLI (generic)]
+  [Exit Codes]
+  note right
+    **Generic over:**
+    - App_Error type
+    - Result package
+    - Service function
+    - Output function
+  end note
+}
+
+package "Application Layer\n(Use Cases & Ports)" as Application BLUE {
+  [Services (generic)]
+  [Port Signatures (generic)]
+  note right
+    **Port Signature Example:**
+    generic
+      with function Send(...) return Result;
+    package Output.API is ...
+  end note
+}
+
+package "Infrastructure Layer\n(Output Adapters)" as Infrastructure ORANGE {
+  [Console Output (generic)]
+  [Logger (generic)]
+  [Result Adapter (generic)]
+  [Functional Library Bridge]
+  note right
+    **Adapters are themselves generic!**
+    Instantiated with Result package
+    Bound to port signatures
+  end note
+}
+
+package "Domain Layer\n(Business Logic)" as Domain PURPLE {
+  [Value Objects (generic)]
+  [Domain Services (generic)]
+  [Port Interfaces (generic)]
+  note right
+    **Zero dependencies**
+    Generic over Result types
+    Pure business logic
+  end note
+}
+
+package "External: Functional Library" as Functional CYAN {
+  [Result<T,E>]
+  [Option<T>]
+  [Either<L,R>]
+  note right
+    **Third-party dependency**
+    Wrapped by Infrastructure
+    Not used directly in Domain
+  end note
+}
+
+' Layer dependencies (generics-based)
+Bootstrap -down-> Shared : instantiates
+Bootstrap -down-> Presentation : instantiates
+Bootstrap -down-> Application : instantiates
+Bootstrap -down-> Infrastructure : instantiates
+Bootstrap -down-> Domain : instantiates
+
+Presentation -down-> Application : generic over
+Presentation .down.> Domain : uses types
+
+Application -down-> Domain : generic over
+Application ..> Infrastructure : defines port signatures for
+
+Infrastructure -up-> Application : implements port signatures
+Infrastructure -down-> Domain : uses types
+Infrastructure -right-> Functional : wraps (adapts)
+
+Domain ..> Infrastructure : defines port interfaces\n(via Domain.Foundation.Ports)
+
+note bottom of Bootstrap
+  **Only layer with all dependencies**
+  Performs all generic instantiations
+  Wires adapters to ports
+  Compile-time dependency injection
+end note
+
+note bottom of Domain
+  **No "with" clauses to other layers**
+  Defines port interfaces (Result_Port)
+  Pure business logic + type signatures
+end note
+
+note bottom of Application
+  **Defines port signatures as generics**
+  Services are generic over ports
+  No concrete implementations
+  Dependency Inversion via generics
+end note
+
+legend right
+  **Key Difference from OOP:**
+  - Arrows represent **generic instantiation** not inheritance
+  - Dependencies bound at **compile time** not runtime
+  - Port signatures are **generic formals** not interfaces
+  - Adapters bound via **generic instantiation** not polymorphism
+endlegend
+
+@enduml

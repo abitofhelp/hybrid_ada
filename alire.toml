@@ -1,0 +1,26 @@
+name = "hybrid"
+description = "Ada 2022 Hybrid Architecture Template (DDD/Clean/Hexagonal)"
+version = "1.0.0"
+
+authors = ["A Bit of Help, Inc. - Michael Gardner"]
+maintainers = [
+    "A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>",
+]
+maintainers-logins = ["abitofhelp"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = ["aggregate", "project"]
+
+[gpr-externals]
+
+[gpr-set-externals]
+
+[[depends-on]]
+aunit = "^24.0.0"
+functional = "^1.0.0"
+
+[configuration]
+disabled = true
+
+[[pins]]
+functional = { path='../functional' }

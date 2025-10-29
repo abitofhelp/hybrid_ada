@@ -1,0 +1,93 @@
+@startuml OOP vs Generic Port-Adapter Pattern
+!theme plain
+scale 1.2
+
+package "OOP Approach (Dynamic Dispatch)" {
+  interface IOutputPort {
+    +Write(message: String): Result
+  }
+
+  class CreateGreetingService {
+    -outputPort: IOutputPort
+    +Execute(name: String): Result
+  }
+
+  class ConsoleAdapter {
+    +Write(message: String): Result
+  }
+
+  class FileAdapter {
+    +Write(message: String): Result
+  }
+
+  CreateGreetingService o--> IOutputPort : depends on interface
+  ConsoleAdapter ..|> IOutputPort : implements
+  FileAdapter ..|> IOutputPort : implements
+
+  note right of IOutputPort
+    Runtime polymorphism:
+    - Virtual method calls
+    - Dynamic dispatch
+    - Runtime binding
+  end note
+}
+
+package "Generic Approach (Static Dispatch)" {
+  package "Application (Generic Port)" {
+    class "CreateGreeting_Spec" as GenericPort {
+      **generic**
+      with function Write(msg) return Result;
+      --
+      procedure Execute(name: String)
+    }
+  }
+
+  package "Infrastructure (Adapter)" {
+    class ConsoleAdapter_Impl {
+      function Write(msg) return Result
+    }
+
+    class FileAdapter_Impl {
+      function Write(msg) return Result
+    }
+  }
+
+  package "Bootstrap (Instantiation)" {
+    class "CreateGreeting_Console" as Inst1 {
+      **instantiation**
+      new CreateGreeting_Spec(
+        Write => Console.Write
+      )
+    }
+
+    class "CreateGreeting_File" as Inst2 {
+      **instantiation**
+      new CreateGreeting_Spec(
+        Write => File.Write
+      )
+    }
+  }
+
+  GenericPort ..> Inst1 : instantiated as
+  GenericPort ..> Inst2 : instantiated as
+  ConsoleAdapter_Impl ..> Inst1 : provides Write
+  FileAdapter_Impl ..> Inst2 : provides Write
+
+  note right of GenericPort
+    Compile-time polymorphism:
+    - Direct function calls
+    - Static dispatch
+    - Compile-time binding
+    - Zero runtime overhead
+  end note
+}
+
+note bottom
+**Key Translation:**
+Interface → Generic formal parameter
+implements → instantiation with actual parameter
+Dependency injection → Generic instantiation
+Runtime binding → Compile-time binding
+end note
+
+@enduml

@@ -1,0 +1,61 @@
+name = "bootstrap"
+description = "Bootstrap: composition root; wires deps, lifecycle, sync/async."
+version = "1.0.0"
+
+authors = ["A Bit of Help, Inc. - Michael Gardner"]
+maintainers = ["A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>"]
+maintainers-logins = ["abitofhelp"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = ["clean", "composition", "root", "concurrency", "ddd", "di", "dip", "entry-point", "hexagonal", "lifecycle", "parallelism"]
+
+executables = ["hybrid-bootstrap-main", "hybrid-bootstrap-main_concurrent"]
+
+[configuration]
+auto_gpr_with = true
+
+[build-profiles]
+"*" = "development"
+
+# =============================================================================
+# BUILD SWITCHES: Ada 2022 Quality Standards
+# =============================================================================
+# These switches enforce Ada 2022 best practices for all build profiles
+
+[build-switches."*"]
+# Style checks based on Ada Quality and Style Guide
+style_checks = [
+    "-gnatyM120",  # Maximum line length of 120 characters
+    "-gnatyx",     # Check extra parentheses
+    "-gnatye",     # Check end labels
+    "-gnatyr",     # Check references
+    "-gnatyn",     # Check casing of entities in Standard
+    "-gnatyu",     # Check unnecessary blank lines
+    "-gnatyO",     # Check no overriding indicators
+]
+
+# Enable design-by-contract programming (Pre/Post/Type_Invariant/Predicate)
+contracts = "yes"
+
+# Enable comprehensive runtime checks
+runtime_checks = "everything"
+
+# =============================================================================
+# EXECUTION MODE CONFIGURATION
+# =============================================================================
+# Both synchronous and concurrent (tasking) modes are available:
+#
+# SYNCHRONOUS MODE (hybrid-bootstrap-main)
+#   - Single-threaded sequential execution
+#   - Application runs in main thread
+#   - Simpler debugging and testing
+#   - Default for v1.0.0
+#
+# CONCURRENT MODE (hybrid-bootstrap-main_concurrent)
+#   - Task-based concurrent execution
+#   - Application runs in Application_Runner task
+#   - Main thread spawns task and waits for completion
+#   - Error handling via rendezvous
+#
+# NOTE: Both modes require tasking runtime (signal handler uses Ada tasks)
+# Configuration is in bootstrap.gpr (Runtime package + pthread linker flags)

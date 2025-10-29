@@ -1,0 +1,88 @@
+-- ==========================================================================
+-- Bootstrap Layer Project File
+-- ==========================================================================
+-- Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+-- See LICENSE file in the project root.
+-- ==========================================================================
+
+with "config/hybrid_bootstrap_config.gpr";
+with "../shared_config.gpr";
+with "../shared/shared.gpr";
+with "../abohlib/abohlib.gpr";
+with "../domain/domain.gpr";
+with "../application/application.gpr";
+with "../infrastructure/infrastructure.gpr";
+with "../presentation/presentation.gpr";
+with "../../functional/functional.gpr";
+
+project Bootstrap is
+
+   -- ==========================================================================
+   -- COMPOSITION ROOT - Wires all layers together
+   -- ==========================================================================
+   -- Bootstrap is the ONLY project allowed to depend on all layers
+   -- It wires: Presentation -> Use Cases <- Infrastructure
+   --           All depend on Domain (business logic)
+
+   for Source_Dirs use ("src/**", "config/");
+   for Object_Dir use "obj/" & Hybrid_Bootstrap_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use ("hybrid-bootstrap-main.adb", "hybrid-bootstrap-main_concurrent.adb");
+
+   -- Use shared compiler, binder, builder, format, and documentation settings
+   package Compiler renames Shared_Config.Compiler;
+   package Builder renames Shared_Config.Builder;
+   package Documentation renames Shared_Config.Documentation;
+
+   -- ==========================================================================
+   -- EXECUTION MODE: Tasking Support Configuration
+   -- ==========================================================================
+   -- IMPORTANT: Signal handler uses Ada tasks, so tasking support is REQUIRED
+   --
+   -- For educational purposes, here's what a sync-only config would look like:
+   --
+   -- ❌ SYNC ONLY (No Tasking) - WILL NOT WORK with current signal handler:
+   --    -- No Runtime package needed (uses default non-tasking runtime)
+   --    package Linker is
+   --       for Switches ("Ada") use ("-shared-libgcc");
+   --    end Linker;
+   --
+   -- ✅ TASKING ENABLED (Current Configuration):
+   --    package Runtime is
+   --       for tasking use "native";
+   --    end Runtime;
+   --    package Linker is
+   --       for Switches ("Ada") use ("-lpthread", "-shared-libgcc");
+   --    end Linker;
+   --
+   -- Both sync and concurrent versions now build successfully with this config
+
+   -- Use shared binder settings (includes symbolic traceback)
+   package Binder renames Shared_Config.Binder;
+
+   -- ==========================================================================
+   -- RUNTIME CONFIGURATION: Enable tasking support
+   -- ==========================================================================
+   -- Required for signal handler (uses Ada tasks internally)
+   package Runtime is
+      for tasking use "native";
+   end Runtime;
+
+   -- ==========================================================================
+   -- LINKER CONFIGURATION
+   -- ==========================================================================
+   -- pthread required for Ada tasking runtime
+   package Linker is
+      for Switches ("Ada") use ("-lpthread", "-shared-libgcc");
+   end Linker;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+   -- Use shared format settings (references root .gnatformat.yaml)
+   package Format renames Shared_Config.Format;
+
+end Bootstrap;

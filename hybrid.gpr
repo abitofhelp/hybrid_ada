@@ -1,0 +1,29 @@
+-- ==========================================================================
+-- Aggregate Project for Hybrid Ada Architecture Template
+-- ==========================================================================
+-- Copyright (c) 2025 Michael Gardner, A Bit of Help, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+-- See LICENSE file in the project root.
+-- ==========================================================================
+-- Architecture: Hybrid DDD/Clean/Hexagonal
+--
+-- Dependency Flow (enforced by GPRbuild):
+--   Domain        → NOTHING (pure business logic)
+--   Application   → Domain (use cases, ports)
+--   Infrastructure→ Application + Domain (output adapters)
+--   Presentation  → Application ONLY (input adapters)
+--   Bootstrap     → ALL (composition root)
+-- ==========================================================================
+
+aggregate project Hybrid is
+   for Project_Files use (
+      "../functional/functional.gpr",
+      "shared/shared.gpr",
+      "abohlib/abohlib.gpr",
+      "domain/domain.gpr",
+      "application/application.gpr",
+      "infrastructure/infrastructure.gpr",
+      "presentation/presentation.gpr",
+      "bootstrap/bootstrap.gpr"
+   );
+end Hybrid;

@@ -1,0 +1,204 @@
+@startuml sequence-greeting
+!define LIGHTBLUE #E3F2FD
+!define BLUE #2196F3
+!define GREEN #4CAF50
+!define ORANGE #FF9800
+!define PURPLE #9C27B0
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 5
+skinparam maxmessagesize 200
+skinparam sequenceParticipant {
+  BackgroundColor LIGHTBLUE
+  BorderColor BLUE
+}
+
+title Greeting Service - Generic Instantiation & Runtime Flow
+
+box "Compile-Time (Generic Instantiation)" #FFFACD
+  participant "Bootstrap\n(Main)" as Bootstrap LIGHTBLUE
+end box
+
+box "Runtime (Direct Calls)" #F0F8FF
+  participant "CLI\n<<instance>>" as CLI GREEN
+  participant "Create_Greeting\n<<instance>>" as Service BLUE
+  participant "Person_Name.Operations\n<<instance>>" as NameOps PURPLE
+  participant "Console_Output\n<<instance>>" as Console ORANGE
+end box
+
+== Compile-Time: Generic Instantiation in Bootstrap ==
+
+note over Bootstrap
+  **Step 1:** Define error type
+  type App_Error is (Bad_Input, IO_Error, System_Error);
+end note
+
+note over Bootstrap
+  **Step 2:** Instantiate Result adapter
+  package App_Result is new Result_API
+    (T => Unbounded_String, E => App_Error);
+end note
+
+note over Bootstrap
+  **Step 3:** Instantiate Person_Name Result
+  package Person_Name_Result is new Result_API
+    (T => Person_Name, E => Person_Name_Error);
+end note
+
+note over Bootstrap
+  **Step 4:** Instantiate Person_Name operations
+  package Person_Name_Ops is new Operations.API
+    (R => Person_Name_Result.Instance);
+end note
+
+note over Bootstrap
+  **Step 5:** Instantiate Console Output adapter
+  package Console_Out is new Console_Output
+    (App_Error => App_Error, R => App_Result.Instance);
+end note
+
+note over Bootstrap
+  **Step 6:** Bind adapter to port signature
+  package Output_Port is new Output.API
+    (App_Error => App_Error,
+     R => App_Result.Instance,
+     Send => Console_Out.Send);
+
+  **This binding is compile-time only!**
+  Output_Port is just a signature, no code.
+end note
+
+note over Bootstrap
+  **Step 7:** Instantiate service with all dependencies
+  package Greeting_Service is new Create_Greeting.API
+    (App_Error => App_Error,
+     R => App_Result.Instance,
+     Name_Ops => Person_Name_Ops,
+     Output_Port => Output_Port);
+end note
+
+note over Bootstrap
+  **Step 8:** Instantiate CLI
+  package CLI is new Presentation.CLI
+    (App_Error => App_Error,
+     R => App_Result.Instance,
+     Run_Service => Greeting_Service.Run,
+     Send_Output => Console_Out.Send);
+
+  **All dependencies wired!**
+end note
+
+Bootstrap -> CLI : **Creates instance**
+Bootstrap -> Service : **Creates instance**
+Bootstrap -> NameOps : **Creates instance**
+Bootstrap -> Console : **Creates instance**
+
+note over Bootstrap, Console
+  **After instantiation:**
+  - All types are known at compile-time
+  - All function calls are direct (no vtable)
+  - Compiler can inline across layers
+  - Zero runtime overhead for abstraction
+end note
+
+== Runtime: Direct Function Calls (No Polymorphism) ==
+
+-> Bootstrap : **User runs:** ./main Alice
+activate Bootstrap
+
+Bootstrap -> CLI : App_Exit_Code := CLI.Run
+activate CLI
+
+CLI -> CLI : Parse arguments ("Alice")
+
+CLI -> Service : Result := Run("Alice")
+activate Service
+note right: **Direct call** (not virtual)
+
+Service -> NameOps : Name_Result := Create("Alice")
+activate NameOps
+note right: **Direct call**
+
+NameOps -> NameOps : Validate length (1-50 chars)
+NameOps -> NameOps : Validate characters (letters/spaces)
+
+alt Validation Success
+  NameOps --> Service : Ok(Person_Name)
+  deactivate NameOps
+
+  Service -> Service : greeting := "Hello, " & "Alice" & "!"
+
+  Service -> Console : Send_Result := Send(greeting)
+  activate Console
+  note right: **Direct call via port binding**
+
+  Console -> Console : Put_Line("Hello, Alice!")
+
+  alt Console Success
+    Console --> Service : Ok(greeting)
+  else IO Failure
+    Console --> Service : Err(IO_Error)
+  end
+  deactivate Console
+
+  Service --> CLI : Ok("Hello, Alice!")
+
+else Validation Failure
+  NameOps --> Service : Err(Person_Name_Error)
+  deactivate NameOps
+
+  Service -> Service : Map error: Person_Name_Error → App_Error
+  Service --> CLI : Err(Bad_Input)
+end
+
+deactivate Service
+
+alt Result is Ok
+  CLI -> Console : Send(message)
+  activate Console
+  Console -> Console : Put_Line(message)
+  Console --> CLI : Ok
+  deactivate Console
+
+  CLI --> Bootstrap : Exit_Code = Ok (0)
+
+else Result is Err
+  CLI -> Console : Send(error message)
+  activate Console
+  Console -> Console : Put_Line(error)
+  Console --> CLI : Ok
+  deactivate Console
+
+  CLI --> Bootstrap : Exit_Code = Data_Error (65)
+end
+
+deactivate CLI
+deactivate Bootstrap
+
+note over Bootstrap, Console
+  **Key Observations:**
+  1. All calls are **direct function calls** (no indirection)
+  2. No vtable lookups, no access-to-subprogram calls
+  3. Compiler can **inline across layer boundaries**
+  4. Port abstraction has **zero runtime cost**
+  5. Type safety enforced at **compile time**
+  6. Errors flow through **Result<T,E>** monad
+end note
+
+legend right
+  **Generics Advantages:**
+  ✅ Compile-time type safety
+  ✅ Zero-cost abstraction
+  ✅ Inline optimization possible
+  ✅ No heap allocation for dispatch
+  ✅ Clear dependency graph
+  ✅ Port bindings visible in one place
+
+  **Trade-offs:**
+  ❌ Cannot change adapters at runtime
+  ❌ Verbose instantiation code
+  ❌ Each binding requires recompile
+  ❌ Complex error messages
+endlegend
+
+@enduml

@@ -1,0 +1,79 @@
+@startuml Generic-Based Hybrid Architecture
+!theme plain
+scale 1.2
+
+package "Domain Layer" {
+  class PersonName {
+    +Create(raw: String): Result<PersonName, Error>
+  }
+
+  class "Greeting_Service_Spec" as DomainService {
+    **generic**
+    with package PersonName_Ops
+    --
+    function CreateGreeting(name): Result
+  }
+
+  note right of DomainService
+    Pure business logic
+    No infrastructure dependencies
+    Generic over value operations
+  end note
+}
+
+package "Application Layer" {
+  class "CreateGreeting_Spec" as AppService {
+    **generic**
+    with function Create_Greeting(...)
+    with function Write_Output(...)
+    --
+    procedure Execute(name: String)
+  }
+
+  note right of AppService
+    Use case orchestration
+    Generic over domain services
+    Generic over output ports
+  end note
+}
+
+package "Infrastructure Layer" {
+  class ConsoleAdapter {
+    function Write(msg): Result
+  }
+
+  class PersonName_Operations {
+    function Create(raw): Result
+    function Validate(pn): Boolean
+  }
+
+  note right of ConsoleAdapter
+    Concrete implementations
+    Actual I/O operations
+    No generics here
+  end note
+}
+
+package "Bootstrap (Composition Root)" {
+  class "App_Service_Instance" as Bootstrap {
+    **instantiations**
+    PersonName_Ops is new PersonName.Operations
+    Domain_Service is new Greeting_Service(PersonName_Ops)
+    App_Service is new CreateGreeting(Domain_Service.Create, Console.Write)
+  }
+
+  note right of Bootstrap
+    Wires everything together
+    Instantiates all generics
+    Provides concrete types
+    Dependency composition
+  end note
+}
+
+PersonName ..> DomainService : used by
+DomainService ..> AppService : instantiated in
+ConsoleAdapter ..> Bootstrap : provides Write
+PersonName_Operations ..> Bootstrap : provides Create
+AppService ..> Bootstrap : instantiated here
+
+@enduml

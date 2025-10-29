@@ -5,7 +5,31 @@
 **SPDX-License-Identifier:** BSD-3-Clause
 **License File:** See the LICENSE file in the project root.
 **Copyright:** © 2025 Michael Gardner, A Bit of Help, Inc.
-**Status:** Pre-release (v1.0.0)
+**Status:** Released
+
+---
+
+## Why This Project Exists
+
+**The Missing Guide for Generic-Based Architecture**
+
+When learning hexagonal/clean architecture, you'll find countless examples using OOP interfaces and dynamic dispatch (Java, C#, TypeScript). But what about languages like Ada, Rust, or modern C++ that favor generics and static dispatch?
+
+**This project fills that gap.**
+
+We provide:
+- ✅ **Complete working example** of hexagonal architecture using **generics instead of interfaces**
+- ✅ **Comprehensive primer textbook** (mdBook) explaining the mental model translation from OOP to generics
+- ✅ **Side-by-side comparisons** showing the same patterns in both paradigms
+- ✅ **Educational diagrams** visualizing how generic instantiation replaces runtime polymorphism
+
+**The primer has been completed and is currently under editorial review. It will be made available soon.**
+
+**If you've been searching for "how to do dependency injection without interfaces" or "hexagonal architecture with generics" — you've found it.**
+
+---
+
+## Overview
 
 An Ada 2022 reference application demonstrating professional software architecture patterns including Domain-Driven Design (DDD), Clean Architecture, and Hexagonal Architecture principles with comprehensive test coverage.
 
@@ -32,6 +56,7 @@ This project serves as an **educational reference** for building production-qual
 ### Key Features
 
 - **Hybrid Architecture** - DDD/Clean/Hexagonal Architecture with strict layer separation
+- **Proactive Architecture Enforcement** - Compiler catches transitive dependency violations at build time (not runtime!)
 - **Functional Programming** - Result/Either monads for type-safe error handling
 - **No Exceptions Across Boundaries** - All errors returned as values
 - **Ada 2022 Best Practices** - Aspects, contracts, expression functions
@@ -44,10 +69,11 @@ This project serves as an **educational reference** for building production-qual
 1. **Domain-Driven Design** - Value objects, entities, domain services, ubiquitous language
 2. **Clean Architecture** - Dependency inversion, use cases, ports and adapters
 3. **Hexagonal Architecture** - Primary/secondary ports, infrastructure adapters
-4. **Functional Error Handling** - Result/Either monads without exceptions
-5. **Ada 2022 Patterns** - Generics, aspects, contracts, expression functions
-6. **Concurrent Programming** - Protected objects, tasks, supervisor patterns
-7. **Professional Testing** - Unit tests, integration tests, E2E tests with mocks
+4. **Compiler-Enforced Architecture** - GNAT compiler validates hexagonal architecture layer dependencies at build time
+5. **Functional Error Handling** - Result/Either monads without exceptions
+6. **Ada 2022 Patterns** - Generics, aspects, contracts, expression functions
+7. **Concurrent Programming** - Protected objects, tasks, supervisor patterns
+8. **Professional Testing** - Unit tests, integration tests, E2E tests with mocks
 
 ---
 
@@ -109,6 +135,70 @@ This project serves as an **educational reference** for building production-qual
 4. **Interface Segregation** - Specific interfaces rather than general-purpose ones
 5. **Dependency Inversion** - Depend on abstractions, not concretions
 6. **No Exceptions Across Boundaries** - Result types for all fallible operations
+7. **Architecture Guard** - Automated validation prevents layer boundary violations (`make test` runs `scripts/arch_guard.py`)
+
+### Architecture Enforcement
+
+**Application.Result Facade Pattern**
+
+The Presentation layer must never directly import Domain types. To enforce this while still providing Result<T,E> semantics, we use the **Application.Result facade**:
+
+```ada
+-- ❌ VIOLATION: Presentation importing Domain directly
+with Hybrid.Domain.Foundation.Ports.Result_Port;  -- DON'T DO THIS
+
+-- ✅ CORRECT: Presentation imports through Application facade
+with Hybrid.Application.Result.Result_Port;       -- Use this instead
+```
+
+**How it works:**
+1. `Hybrid.Application.Result.Result_Port` is a signature-only generic at the Application layer
+2. Bootstrap instantiates it with concrete types from Infrastructure adapters
+3. Presentation depends only on Application, never on Domain
+4. Dependency flow remains clean: Presentation → Application → Domain
+
+**Validation (Three-Layer Enforcement):**
+
+1. **Compile-Time Enforcement** - GNAT compiler catches violations during build:
+   - `Interfaces` attribute in `application.gpr` whitelists only public API packages
+   - `--no-indirect-imports` flag prevents transitive dependency leaks
+   - Compilation fails if Presentation tries to import Domain directly
+
+2. **Script-Based Validation** - `scripts/arch_guard_comprehensive.py`:
+   - Validates all 5 layers (Domain, Application, Infrastructure, Presentation, Bootstrap)
+   - Enforces hexagonal architecture dependency rules
+   - Integrated into `make test` and `make check-arch`
+   - Returns exit code 2 for violations (CI/CD integration)
+
+3. **Development Workflow**:
+   - `make check-arch` - Standalone architecture validation
+   - `make test` - Runs architecture checks before tests
+   - `make build` - Compiler enforcement on every build
+
+**Application.Types - Bounded String API Boundaries**
+
+Public API boundaries use bounded strings for predictable memory behavior:
+
+```ada
+-- Application layer defines the bounded Message_Type (max 1024 chars)
+with Hybrid.Application.Types;
+
+-- Convert between String and bounded Message_Type
+Msg : constant Types.Message_Type := Types.To_Message ("Hello, World!");
+Str : constant String := Types.To_String (Msg);
+```
+
+**Benefits:**
+- **Predictable Memory** - Stack-allocated, no heap fragmentation
+- **No Dynamic Allocation** - Eliminates allocation failures in message handling
+- **API Best Practice** - Clear maximum message sizes at compile time
+- **Performance** - Faster than unbounded strings for typical use cases
+
+**Usage Pattern:**
+1. All public API boundaries (Create_Greeting, Console_Output, CLI) use `Message_Type`
+2. Internal processing may use `Unbounded_String` for flexibility
+3. Conversion at API boundaries via `To_Message` and `To_String` functions
+4. Maximum message size: 1024 characters (defined in `Application.Types`)
 
 ### Package Naming Convention
 
