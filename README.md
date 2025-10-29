@@ -23,7 +23,8 @@ We provide:
 - ✅ **Side-by-side comparisons** showing the same patterns in both paradigms
 - ✅ **Educational diagrams** visualizing how generic instantiation replaces runtime polymorphism
 
-**The primer has been completed and is currently under editorial review. It will be made available soon.**
+> [!WARNING]
+> **The primer has been completed and is currently under editorial review. It will be made available soon.**
 
 **If you've been searching for "how to do dependency injection without interfaces" or "hexagonal architecture with generics" — you've found it.**
 
