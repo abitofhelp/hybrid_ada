@@ -584,12 +584,8 @@ class AdaReleaseManager:
             "--notes", release_notes
         ]
 
-        # Add diagram SVGs as assets
-        diagrams_dir = self.project_root / "docs" / "diagrams"
-        if diagrams_dir.exists():
-            svg_files = list(diagrams_dir.glob("*.svg"))
-            for svg in svg_files[:3]:  # Limit to prevent huge releases
-                cmd.append(str(svg))
+        # Note: Diagrams are in the repo, no need to attach as assets
+        # Users can view them in docs/diagrams/ or rendered in the book
 
         result = self.run_command(cmd)
         if result:
