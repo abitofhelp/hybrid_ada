@@ -18,9 +18,11 @@ tags = ["aggregate", "project"]
 [[depends-on]]
 aunit = "^24.0.0"
 functional = "^1.0.0"
+abohlib = "*"
 
 [configuration]
 disabled = true
 
 [[pins]]
 functional = { path='../functional' }
+abohlib = { path = "../abohlib" }

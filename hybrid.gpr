@@ -19,7 +19,6 @@ aggregate project Hybrid is
    for Project_Files use (
       "../functional/functional.gpr",
       "shared/shared.gpr",
-      "abohlib/abohlib.gpr",
       "domain/domain.gpr",
       "application/application.gpr",
       "infrastructure/infrastructure.gpr",

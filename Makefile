@@ -54,6 +54,14 @@ GNATFORMAT := gnatformat
 GNATDOC := gnatdoc
 PYTHON3 := python3
 
+# External abohlib directory for shared scripts
+ABOHLIB_DIR := ../abohlib
+
+# =============================================================================
+# Tool Flags
+# =============================================================================
+ALR_BUILD_FLAGS := -j8 --no-indirect-imports | grep -E 'warning:|style:|error:' || true
+
 # =============================================================================
 # Directories
 # =============================================================================
@@ -203,22 +211,22 @@ generate-version: sync-versions
 
 build: prereqs generate-version
 	@echo "$(GREEN)Building $(PROJECT_NAME)...$(NC)"
-	$(ALR) build -- -j8 --no-indirect-imports
+	$(ALR) build -- $(ALR_BUILD_FLAGS)
 	@echo "$(GREEN)✓ Build complete$(NC)"
 
 build-dev: prereqs
 	@echo "$(GREEN)Building $(PROJECT_NAME) (development mode)...$(NC)"
-	$(ALR) build --development -- -j8 --no-indirect-imports
+	$(ALR) build --development -- $(ALR_BUILD_FLAGS)
 	@echo "$(GREEN)✓ Development build complete$(NC)"
 
 build-opt: prereqs
 	@echo "$(GREEN)Building $(PROJECT_NAME) (optimized -O2)...$(NC)"
-	$(ALR) build -- -O2 -j8 --no-indirect-imports
+	$(ALR) build -- -O2 $(ALR_BUILD_FLAGS)
 	@echo "$(GREEN)✓ Optimized build complete$(NC)"
 
 build-release: prereqs
 	@echo "$(GREEN)Building $(PROJECT_NAME) (release mode)...$(NC)"
-	$(ALR) build --release -- -j8 --no-indirect-imports
+	$(ALR) build --release -- $(ALR_BUILD_FLAGS)
 	@echo "$(GREEN)✓ Release build complete$(NC)"
 
 build-tests: prereqs generate-version
@@ -258,7 +266,7 @@ install: prereqs
 
 test: build build-tests
 	@echo "$(BLUE)Checking architecture rules...$(NC)"
-	@$(PYTHON3) scripts/arch_guard_comprehensive.py
+	@$(PYTHON3) $(ABOHLIB_DIR)/scripts/arch_guard.py
 	@echo "$(GREEN)Running comprehensive test suite...$(NC)"
 	@if [ -f "$(TESTS_DIR)/bin/test_runner" ]; then \
 		$(TESTS_DIR)/bin/test_runner; \
@@ -350,7 +358,7 @@ check: prereqs
 
 check-arch: ## Validate hexagonal architecture boundaries
 	@echo "$(GREEN)Validating architecture boundaries...$(NC)"
-	@$(PYTHON3) scripts/arch_guard_comprehensive.py
+	@$(PYTHON3) $(ABOHLIB_DIR)/scripts/arch_guard.py
 	@echo "$(GREEN)✓ Architecture validation complete$(NC)"
 
 format-src:
